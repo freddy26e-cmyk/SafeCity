@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafeCity | Panel de Control</title>
-    <!-- Tailwind CSS para diseño rápido -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-slate-950 text-slate-200 overflow-hidden">
 
-    <!-- Header -->
     <header class="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
         <div>
             <h1 class="text-blue-500 font-bold tracking-widest text-xl">SAFECITY</h1>
@@ -28,25 +26,22 @@
     </header>
 
     <div class="flex h-[calc(100vh-64px)]">
-        <!-- Sidebar Izquierda: Estado Hardware -->
         <aside class="w-64 border-r border-slate-800 bg-slate-900/50 p-4">
             <h2 class="text-[10px] font-bold text-slate-500 mb-4 tracking-widest">NODOS ESP32</h2>
             <div id="nodes-list" class="space-y-2">
-                <!-- Se llena con JS -->
-            </div>
+                </div>
         </aside>
 
-        <!-- Centro: Cámaras -->
         <main class="flex-1 p-6 grid grid-cols-2 gap-4 bg-black/20">
+            
             <div class="camera-container border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden group">
                 <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between">
                     <span class="text-[10px] font-bold bg-red-600 px-2 py-0.5 rounded">CAM 01 - ENTRADA</span>
                     <span class="text-[10px] text-slate-400">FPS: 24</span>
                 </div>
-                <div class="h-full w-full flex items-center justify-center text-slate-700 italic">
-                    Conectando con stream...
-                </div>
+                <img id="video-stream" src="http://localhost:5000/video_feed" class="w-full h-full object-cover" alt="Streaming no disponible">
             </div>
+
             <div class="camera-container border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10">
                     <span class="text-[10px] font-bold bg-slate-700 px-2 py-0.5 rounded">CAM 02 - PARQUE</span>
@@ -57,16 +52,13 @@
             </div>
         </main>
 
-        <!-- Sidebar Derecha: Alertas -->
         <aside class="w-80 border-l border-slate-800 bg-slate-900/50 p-4 flex flex-col">
             <h2 class="text-[10px] font-bold text-slate-500 mb-4 tracking-widest">REGISTRO DE EVENTOS</h2>
             <div id="alerts-feed" class="flex-1 overflow-y-auto space-y-3 pr-2">
-                <!-- Las alertas aparecerán aquí -->
-            </div>
+                </div>
         </aside>
     </div>
 
-    <!-- Scripts -->
     <script src="script.js"></script>
 </body>
 </html>
