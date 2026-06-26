@@ -6,10 +6,10 @@ function updateTime() {
 }
 setInterval(updateTime, 1000);
 
-// Lista de nodos ESP32 simulada
+// Lista de nodos ESP32 actualizada con tus dos cámaras activas
 const nodes = [
-    { id: 1, name: 'Entrada Principal', status: 'online' },
-    { id: 2, name: 'Sensor Parque', status: 'online' },
+    { id: 1, name: 'CAM 01 - Entrada', status: 'online' },
+    { id: 2, name: 'CAM 02 - Parque', status: 'online' },
     { id: 3, name: 'Cámara Cochera', status: 'offline' }
 ];
 
@@ -42,7 +42,7 @@ function addAlert(message, location, time) {
     feed.insertAdjacentHTML('afterbegin', alertHtml);
 }
 
-// NUEVO: Función para consultar las alertas reales del servidor de Python
+// Función para consultar las alertas reales del servidor de Python
 async function chequearAlertasServidor() {
     try {
         // Hacemos la petición a tu servidor local en el puerto 5000
