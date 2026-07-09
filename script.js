@@ -42,11 +42,11 @@ function addAlert(message, location, time) {
     feed.insertAdjacentHTML('afterbegin', alertHtml);
 }
 
-// Función para consultar las alertas reales del servidor de Python
+// Función para consultar las alertas reales del servidor de Python a través de Ngrok
 async function chequearAlertasServidor() {
     try {
-        // Hacemos la petición a tu servidor local en el puerto 5000
-        const respuesta = await fetch('http://localhost:5000/obtener_alertas');
+        // Apuntamos al túnel público de Ngrok en lugar de localhost
+        const respuesta = await fetch('https://strung-ooze-efficient.ngrok-free.dev/obtener_alertas');
         const alertas = await respuesta.json();
 
         // Si el servidor devolvió alertas, las procesamos una por una
@@ -54,8 +54,8 @@ async function chequearAlertasServidor() {
             addAlert(alerta.mensaje, 'Zona Entrada', alerta.tiempo);
         });
     } catch (error) {
-        // Evitamos llenar la consola de errores si el servidor de Python se apaga momentáneamente
-        console.log("Esperando respuesta del servidor de alertas...");
+        // Evitamos llenar la consola de errores si el servidor se desconecta momentáneamente
+        console.log("Esperando respuesta del servidor de alertas en Ngrok...");
     }
 }
 
