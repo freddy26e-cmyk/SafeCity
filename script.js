@@ -1,3 +1,10 @@
+// ==========================================
+// CONFIGURACIÓN DEL SERVIDOR FLASK (Freddy)
+// ==========================================
+// Opción A (Para ver la web desde tu PC): usa 'http://localhost:5000'
+// Opción B (Para ver la web en el celular con GitHub Pages): usa tu Ngrok actual
+const API_BASE_URL = 'http://localhost:5000'; 
+
 // Función para el reloj en tiempo real
 function updateTime() {
     const timeDisplay = document.getElementById('current-time');
@@ -6,7 +13,7 @@ function updateTime() {
 }
 setInterval(updateTime, 1000);
 
-// Lista de nodos ESP32 actualizada con tus dos cámaras activas
+// Lista de nodos ESP32 con tus dos cámaras activas
 const nodes = [
     { id: 1, name: 'CAM 01 - Entrada', status: 'online' },
     { id: 2, name: 'CAM 02 - Parque', status: 'online' },
@@ -23,10 +30,9 @@ function renderNodes() {
     `).join('');
 }
 
-// Función para agregar alertas a la pantalla (Mantiene tu diseño original)
+// Función para agregar alertas a la pantalla
 function addAlert(message, location, time) {
     const feed = document.getElementById('alerts-feed');
-    // Si el servidor nos da una hora exacta la usamos, de lo contrario calculamos la hora local
     const alertTime = time || new Date().toLocaleTimeString();
     
     const alertHtml = `
@@ -42,11 +48,10 @@ function addAlert(message, location, time) {
     feed.insertAdjacentHTML('afterbegin', alertHtml);
 }
 
-// Función para consultar las alertas reales del servidor de Python a través de Ngrok
+// Función para consultar las alertas reales del servidor de Python
 async function chequearAlertasServidor() {
     try {
-        // Apuntamos al túnel público de Ngrok en lugar de localhost
-        const respuesta = await fetch('https://strung-ooze-efficient.ngrok-free.dev/obtener_alertas');
+        const respuesta = await fetch(`${API_BASE_URL}/obtener_alertas`);
         const alertas = await respuesta.json();
 
         // Si el servidor devolvió alertas, las procesamos una por una
@@ -54,13 +59,12 @@ async function chequearAlertasServidor() {
             addAlert(alerta.mensaje, 'Zona Entrada', alerta.tiempo);
         });
     } catch (error) {
-        // Evitamos llenar la consola de errores si el servidor se desconecta momentáneamente
-        console.log("Esperando respuesta del servidor de alertas en Ngrok...");
+        console.log("Esperando respuesta del servidor de alertas...");
     }
 }
 
 // Inicializar componentes estáticos
 renderNodes();
 
-// Consultar alertas reales del servidor cada 1000 milisegundos (1 segundo)
+// Consultar alertas reales del servidor cada 1 segundo
 setInterval(chequearAlertasServidor, 1000);
