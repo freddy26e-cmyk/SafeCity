@@ -8,8 +8,8 @@ function updateTime() {
 }
 setInterval(updateTime, 1000);
 
-// IP de la ESP32-CAM para control directo de los motores
-const ipEsp32 = "192.168.15.150";
+// IP de la ESP32-CAM para control directo de los motores (Servidor principal Puerto 80)
+const ipEsp32 = "192.168.15.153";
 
 // ==========================================
 // 2. CONTROL DEL JOYSTICK (PAN & TILT)
@@ -66,7 +66,7 @@ function moveJoystick(clientX, clientY) {
     valX.textContent = percentX;
     valY.textContent = percentY;
 
-    // Enviar coordenadas al ESP32-CAM
+    // Enviar coordenadas mapeadas al ESP32-CAM
     enviarDatosServo(percentX, percentY);
 }
 
@@ -80,7 +80,7 @@ function resetJoystick() {
     valX.textContent = 0;
     valY.textContent = 0;
 
-    // Enviar reset al ESP32 (0, 0 para detener o centrar motores)
+    // Retornar servos a su centro (90°, 90°) al soltar el joystick
     enviarDatosServo(0, 0);
 }
 
@@ -132,12 +132,17 @@ function enviarDatosServo(x, y) {
     if (ahora - ultimoEnvio > 100 || (x === 0 && y === 0)) {
         ultimoEnvio = ahora;
 
-        // Construimos la URL apuntando a la IP local de la placa
-        const url = `http://${ipEsp32}/control?var=servo&x=${x}&y=${y}`;
+        // Convertimos el rango de tu joystick (-100 a 100) a los grados que espera tu Arduino
+        // X mapea a Pan (30 a 150) | Y mapea invertido a Tilt (50 a 130)
+        const panGrados = Math.round(90 + (x * 0.6));  
+        const tiltGrados = Math.round(90 - (y * 0.4)); 
+
+        // Construimos la URL apuntando a la ruta /servo y los parámetros que tu placa lee
+        const url = `http://${ipEsp32}/servo?pan=${panGrados}&tilt=${tiltGrados}`;
 
         fetch(url, { mode: 'no-cors' }) 
             .then(() => {
-                console.log(`Comando enviado -> X: ${x} | Y: ${y}`);
+                console.log(`Comando Servo -> Pan: ${panGrados}° | Tilt: ${tiltGrados}°`);
             })
             .catch(err => {
                 console.log("ESP32 no responde a comandos de servo");

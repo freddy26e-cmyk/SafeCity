@@ -9,8 +9,8 @@ app = Flask(__name__)
 CORS(app)  # Permite que tu web local se conecte sin bloqueos
 
 # --- CONFIGURACIÓN DE CÁMARA ÚNICA ---
-# Tu cámara local (CAM 01) apuntando a la nueva IP
-ESP32_CAM_1_URL = "http://192.168.15.150/stream"
+# Cambiado a la raíz del puerto 81 según tus pruebas (sin /stream)
+ESP32_CAM_1_URL = "http://192.168.15.153:81"
 
 # Lista en memoria para almacenar temporalmente las alertas del sensor PIR
 lista_alertas = []
@@ -19,9 +19,15 @@ lista_alertas = []
 def generate_frames_cam1():
     cap = cv2.VideoCapture(ESP32_CAM_1_URL)
     while True:
+        if not cap.isOpened():
+            # Si se pierde la conexión, reintentar abrir la cámara
+            cap.open(ESP32_CAM_1_URL)
+            cv2.waitKey(1000)
+            continue
+
         success, frame = cap.read()
         if not success:
-            break
+            continue
         else:
             frame = cv2.resize(frame, (640, 480))
             ret, buffer = cv2.imencode('.jpg', frame)
