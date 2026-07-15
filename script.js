@@ -8,6 +8,9 @@ function updateTime() {
 }
 setInterval(updateTime, 1000);
 
+// IP de la ESP32-CAM para control directo de los motores
+const ipEsp32 = "192.168.15.150";
+
 // ==========================================
 // 2. CONTROL DEL JOYSTICK (PAN & TILT)
 // ==========================================
@@ -121,26 +124,61 @@ document.addEventListener('touchend', () => {
 // ==========================================
 // 3. ENVÍO DE DATOS AL ESP32-CAM (PAN & TILT)
 // ==========================================
-// Usamos una variable de control para no saturar al ESP32 de peticiones por segundo
 let ultimoEnvio = 0;
 
 function enviarDatosServo(x, y) {
     const ahora = Date.now();
-    // Limitar los envíos a máximo uno cada 100ms (10 peticiones por segundo máximo)
-    // Pero si es el reset (0,0), lo enviamos de inmediato sin importar el tiempo.
+    // Limitar los envíos a máximo uno cada 100ms para no congelar el chip
     if (ahora - ultimoEnvio > 100 || (x === 0 && y === 0)) {
         ultimoEnvio = ahora;
 
-        const ipEsp32 = "192.168.15.91";
-        // Construimos la URL apuntando directamente a tu placa local
+        // Construimos la URL apuntando a la IP local de la placa
         const url = `http://${ipEsp32}/control?var=servo&x=${x}&y=${y}`;
 
-        fetch(url, { mode: 'no-cors' }) // 'no-cors' evita bloqueos por seguridad del navegador
+        fetch(url, { mode: 'no-cors' }) 
             .then(() => {
                 console.log(`Comando enviado -> X: ${x} | Y: ${y}`);
             })
             .catch(err => {
-                console.log("ESP32 no responde en red local");
+                console.log("ESP32 no responde a comandos de servo");
             });
     }
 }
+
+// ==========================================
+// 4. CAPTURA DE ALERTAS DESDE EL SERVIDOR PYTHON
+// ==========================================
+function addAlert(message, time) {
+    const feed = document.getElementById('alerts-feed');
+    const alertTime = time || new Date().toLocaleTimeString();
+    
+    const alertHtml = `
+        <div class="alert-item p-3 bg-red-900/20 border-l-4 border-red-600 rounded animate-pulse">
+            <div class="flex justify-between items-start">
+                <span class="text-[10px] font-bold text-red-500 uppercase italic">Movimiento Detectado</span>
+                <span class="text-[10px] text-slate-500">${alertTime}</span>
+            </div>
+            <p class="text-xs mt-1 text-slate-300">${message}</p>
+        </div>
+    `;
+    
+    feed.insertAdjacentHTML('afterbegin', alertHtml);
+}
+
+// Consultar alertas al servidor Flask cada 1 segundo
+async function chequearAlertasServidor() {
+    try {
+        const respuesta = await fetch(`http://localhost:5000/obtener_alertas`);
+        const alertas = await respuesta.json();
+
+        // Si el servidor devolvió alertas, las procesamos una por una
+        alertas.forEach(alerta => {
+            addAlert(alerta.mensaje, alerta.tiempo);
+        });
+    } catch (error) {
+        // Silenciar errores de conexión cuando el script de Python esté apagado
+    }
+}
+
+// Iniciar monitoreo de alertas desde Python
+setInterval(chequearAlertasServidor, 1000);

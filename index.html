@@ -43,7 +43,7 @@
 
             <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
                 <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Cámara Activa</p>
-                <p class="text-xs font-mono text-green-400">IP: 192.168.15.91</p>
+                <p class="text-xs font-mono text-green-400">IP: 192.168.15.150</p>
             </div>
         </aside>
 
@@ -51,9 +51,9 @@
             <div class="w-full max-w-4xl aspect-video border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden group">
                 <div class="absolute top-0 left-0 w-full p-3 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between items-center">
                     <span class="text-[10px] font-bold bg-blue-600 px-2 py-0.5 rounded">CAM 01 - ENTRADA</span>
-                    <span class="text-[10px] text-green-400 font-mono tracking-wider">LOCAL (192.168.15.91)</span>
+                    <span class="text-[10px] text-green-400 font-mono tracking-wider">PROCESADO POR PYTHON (192.168.15.150)</span>
                 </div>
-                <img id="video-stream" src="http://192.168.15.91/stream" class="w-full h-full object-cover" alt="Esperando transmisión de video local...">
+                <img id="video-stream" src="http://localhost:5000/video_feed" class="w-full h-full object-cover" alt="Esperando transmisión de Python...">
             </div>
         </main>
 
