@@ -1,11 +1,6 @@
 // ==========================================
-// CONFIGURACIÓN DEL SERVIDOR FLASK (Freddy)
+// 1. RELOJ EN TIEMPO REAL
 // ==========================================
-// Opción A (Para ver la web desde tu PC): usa 'http://localhost:5000'
-// Opción B (Para ver la web en el celular con GitHub Pages): usa tu Ngrok actual
-const API_BASE_URL = 'http://localhost:5000'; 
-
-// Función para el reloj en tiempo real
 function updateTime() {
     const timeDisplay = document.getElementById('current-time');
     const now = new Date();
@@ -13,58 +8,139 @@ function updateTime() {
 }
 setInterval(updateTime, 1000);
 
-// Lista de nodos ESP32 con tus dos cámaras activas
-const nodes = [
-    { id: 1, name: 'CAM 01 - Entrada', status: 'online' },
-    { id: 2, name: 'CAM 02 - Parque', status: 'online' },
-    { id: 3, name: 'Cámara Cochera', status: 'offline' }
-];
+// ==========================================
+// 2. CONTROL DEL JOYSTICK (PAN & TILT)
+// ==========================================
+const stick = document.getElementById('joystick-stick');
+const boundary = document.getElementById('joystick-boundary');
+const valX = document.getElementById('val-x');
+const valY = document.getElementById('val-y');
 
-function renderNodes() {
-    const list = document.getElementById('nodes-list');
-    list.innerHTML = nodes.map(node => `
-        <div class="flex items-center justify-between p-2 bg-slate-800/40 rounded border border-slate-700/50">
-            <span class="text-xs">${node.name}</span>
-            <span class="h-2 w-2 rounded-full ${node.status === 'online' ? 'bg-green-500 shadow-[0_0_5px_#22c55e]' : 'bg-red-500'}"></span>
-        </div>
-    `).join('');
+let isDragging = false;
+let boundaryRadius = boundary.offsetWidth / 2;
+let stickRadius = stick.offsetWidth / 2;
+let maxDistance = boundaryRadius - stickRadius; // Límite de movimiento físico
+
+// Posición inicial del stick en el centro exacto
+let centerX = boundaryRadius - stickRadius;
+let centerY = boundaryRadius - stickRadius;
+
+// Colocar el joystick en el centro al cargar la página
+stick.style.left = `${centerX}px`;
+stick.style.top = `${centerY}px`;
+
+// Función para mover el joystick y calcular porcentajes
+function moveJoystick(clientX, clientY) {
+    const rect = boundary.getBoundingClientRect();
+    
+    // Coordenadas del toque/click relativas al centro del contenedor
+    const touchX = clientX - rect.left - boundaryRadius;
+    const touchY = clientY - rect.top - boundaryRadius;
+    
+    // Distancia desde el centro usando Pitágoras: d = sqrt(x² + y²)
+    const distance = Math.sqrt(touchX * touchX + touchY * touchY);
+    
+    let finalX = touchX;
+    let finalY = touchY;
+    
+    // Si se sale del límite circular, restringir el movimiento al borde
+    if (distance > maxDistance) {
+        const angle = Math.atan2(touchY, touchX);
+        finalX = Math.cos(angle) * maxDistance;
+        finalY = Math.sin(angle) * maxDistance;
+    }
+    
+    // Mover visualmente el stick
+    stick.style.left = `${centerX + finalX}px`;
+    stick.style.top = `${centerY + finalY}px`;
+    
+    // Convertir la posición a un rango de -100 a 100
+    // Invertimos la "Y" para que "Arriba" sea positivo y "Abajo" sea negativo
+    const percentX = Math.round((finalX / maxDistance) * 100);
+    const percentY = Math.round(-(finalY / maxDistance) * 100);
+    
+    // Mostrar valores en la interfaz HTML
+    valX.textContent = percentX;
+    valY.textContent = percentY;
+
+    // Enviar coordenadas al ESP32-CAM
+    enviarDatosServo(percentX, percentY);
 }
 
-// Función para agregar alertas a la pantalla
-function addAlert(message, location, time) {
-    const feed = document.getElementById('alerts-feed');
-    const alertTime = time || new Date().toLocaleTimeString();
+// Retornar el joystick al centro al soltarlo
+function resetJoystick() {
+    isDragging = false;
+    stick.style.transition = "all 0.2s ease-out"; // Animación fluida de retorno
+    stick.style.left = `${centerX}px`;
+    stick.style.top = `${centerY}px`;
     
-    const alertHtml = `
-        <div class="alert-item p-3 bg-red-900/20 border-l-4 border-red-600 rounded animate-pulse">
-            <div class="flex justify-between items-start">
-                <span class="text-[10px] font-bold text-red-500 uppercase italic">Movimiento Detectado</span>
-                <span class="text-[10px] text-slate-500">${alertTime}</span>
-            </div>
-            <p class="text-xs mt-1 text-slate-300">Sector: ${location}</p>
-        </div>
-    `;
-    
-    feed.insertAdjacentHTML('afterbegin', alertHtml);
+    valX.textContent = 0;
+    valY.textContent = 0;
+
+    // Enviar reset al ESP32 (0, 0 para detener o centrar motores)
+    enviarDatosServo(0, 0);
 }
 
-// Función para consultar las alertas reales del servidor de Python
-async function chequearAlertasServidor() {
-    try {
-        const respuesta = await fetch(`${API_BASE_URL}/obtener_alertas`);
-        const alertas = await respuesta.json();
+// Quitar la transición para que no tenga lag al arrastrar
+function startDrag() {
+    isDragging = true;
+    stick.style.transition = "none";
+}
 
-        // Si el servidor devolvió alertas, las procesamos una por una
-        alertas.forEach(alerta => {
-            addAlert(alerta.mensaje, 'Zona Entrada', alerta.tiempo);
-        });
-    } catch (error) {
-        console.log("Esperando respuesta del servidor de alertas...");
+// --- EVENTOS DE MOUSE (PC) ---
+stick.addEventListener('mousedown', (e) => {
+    startDrag();
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    moveJoystick(e.clientX, e.clientY);
+});
+
+document.addEventListener('mouseup', () => {
+    if (isDragging) resetJoystick();
+});
+
+// --- EVENTOS TÁCTILES (Móvil) ---
+stick.addEventListener('touchstart', (e) => {
+    startDrag();
+    e.preventDefault();
+});
+
+document.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    moveJoystick(touch.clientX, touch.clientY);
+});
+
+document.addEventListener('touchend', () => {
+    if (isDragging) resetJoystick();
+});
+
+// ==========================================
+// 3. ENVÍO DE DATOS AL ESP32-CAM (PAN & TILT)
+// ==========================================
+// Usamos una variable de control para no saturar al ESP32 de peticiones por segundo
+let ultimoEnvio = 0;
+
+function enviarDatosServo(x, y) {
+    const ahora = Date.now();
+    // Limitar los envíos a máximo uno cada 100ms (10 peticiones por segundo máximo)
+    // Pero si es el reset (0,0), lo enviamos de inmediato sin importar el tiempo.
+    if (ahora - ultimoEnvio > 100 || (x === 0 && y === 0)) {
+        ultimoEnvio = ahora;
+
+        const ipEsp32 = "192.168.15.91";
+        // Construimos la URL apuntando directamente a tu placa local
+        const url = `http://${ipEsp32}/control?var=servo&x=${x}&y=${y}`;
+
+        fetch(url, { mode: 'no-cors' }) // 'no-cors' evita bloqueos por seguridad del navegador
+            .then(() => {
+                console.log(`Comando enviado -> X: ${x} | Y: ${y}`);
+            })
+            .catch(err => {
+                console.log("ESP32 no responde en red local");
+            });
     }
 }
-
-// Inicializar componentes estáticos
-renderNodes();
-
-// Consultar alertas reales del servidor cada 1 segundo
-setInterval(chequearAlertasServidor, 1000);

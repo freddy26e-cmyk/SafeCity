@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeCity | Panel de Control</title>
+    <title>SafeCity | Panel de Control Local</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -12,12 +12,12 @@
     <header class="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
         <div>
             <h1 class="text-blue-500 font-bold tracking-widest text-xl">SAFECITY</h1>
-            <p class="text-[10px] text-slate-500 uppercase font-semibold">Smart Security System v1.0</p>
+            <p class="text-[10px] text-slate-500 uppercase font-semibold">Smart Security System v1.0 - Conexión Local</p>
         </div>
         <div class="flex items-center gap-4">
             <div class="text-right">
                 <p id="current-time" class="text-sm font-mono">00:00:00</p>
-                <p class="text-[9px] text-green-500">SISTEMA OPERATIVO</p>
+                <p class="text-[9px] text-green-500">SISTEMA OPERATIVO LAN</p>
             </div>
             <button class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-full transition-all animate-pulse">
                 PÁNICO
@@ -26,32 +26,38 @@
     </header>
 
     <div class="flex h-[calc(100vh-64px)]">
-        <aside class="w-64 border-r border-slate-800 bg-slate-900/50 p-4">
-            <h2 class="text-[10px] font-bold text-slate-500 mb-4 tracking-widest">NODOS ESP32</h2>
-            <div id="nodes-list" class="space-y-2">
+        <aside class="w-72 border-r border-slate-800 bg-slate-900/50 p-4 flex flex-col justify-between">
+            <div>
+                <h2 class="text-[10px] font-bold text-slate-500 mb-6 tracking-widest">CONTROL DE CÁMARA (SERVOS)</h2>
+                
+                <div class="flex flex-col items-center justify-center p-4 bg-slate-900 border border-slate-800 rounded-lg h-60 relative">
+                    <p class="text-[10px] text-slate-500 mb-4 uppercase tracking-wider font-semibold">Joystick Pan & Tilt</p>
+                    
+                    <div id="joystick-boundary" class="w-32 h-32 rounded-full bg-slate-950 border border-slate-750 flex items-center justify-center relative touch-none">
+                        <div id="joystick-stick" class="w-12 h-12 rounded-full bg-blue-600 shadow-[0_0_15px_#2563eb] cursor-pointer absolute"></div>
+                    </div>
+                    
+                    <p class="text-xs text-blue-500 mt-4 font-mono font-bold">X: <span id="val-x">0</span> | Y: <span id="val-y">0</span></p>
                 </div>
-        </aside>
-
-        <main class="flex-1 p-6 grid grid-cols-2 gap-4 bg-black/20">
-            
-            <div class="camera-container border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between">
-                    <span class="text-[10px] font-bold bg-red-600 px-2 py-0.5 rounded">CAM 01 - ENTRADA</span>
-                    <span class="text-[10px] text-slate-400">FPS: 24</span>
-                </div>
-                <img id="video-stream" src="http://localhost:5000/video_feed" class="w-full h-full object-cover" alt="Streaming no disponible">
             </div>
 
-            <div class="camera-container border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between">
-                    <span class="text-[10px] font-bold bg-slate-700 px-2 py-0.5 rounded">CAM 02 - PARQUE</span>
-                    <span class="text-[10px] text-slate-400">FPS: 24</span>
+            <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Cámara Activa</p>
+                <p class="text-xs font-mono text-green-400">IP: 192.168.15.91</p>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 flex items-center justify-center bg-black/20">
+            <div class="w-full max-w-4xl aspect-video border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-full p-3 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between items-center">
+                    <span class="text-[10px] font-bold bg-blue-600 px-2 py-0.5 rounded">CAM 01 - ENTRADA</span>
+                    <span class="text-[10px] text-green-400 font-mono tracking-wider">LOCAL (192.168.15.91)</span>
                 </div>
-                <img id="video-stream-2" src="http://localhost:5000/video_feed2" class="w-full h-full object-cover" alt="Streaming no disponible">
+                <img id="video-stream" src="http://192.168.15.91/stream" class="w-full h-full object-cover" alt="Esperando transmisión de video local...">
             </div>
         </main>
 
-        <aside class="w-80 border-l border-slate-800 bg-slate-900/50 p-4 flex flex-col">
+        <aside class="w-72 border-l border-slate-800 bg-slate-900/50 p-4 flex flex-col">
             <h2 class="text-[10px] font-bold text-slate-500 mb-4 tracking-widest">REGISTRO DE EVENTOS</h2>
             <div id="alerts-feed" class="flex-1 overflow-y-auto space-y-3 pr-2">
                 </div>
