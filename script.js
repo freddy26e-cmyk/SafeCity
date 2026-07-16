@@ -11,9 +11,6 @@ setInterval(updateTime, 1000);
 // IP de la ESP32-CAM para control directo de los motores (Servidor principal Puerto 80)
 const ipEsp32 = "192.168.15.153";
 
-// URL base del backend de Python (lee la URL de producción o usa localhost por defecto)
-const SERVIDOR_PYTHON = typeof SERVIDOR_SAFECITY !== 'undefined' ? SERVIDOR_SAFECITY : "http://localhost:5000";
-
 // ==========================================
 // 2. CONTROL DEL JOYSTICK (PAN & TILT)
 // ==========================================
@@ -135,14 +132,13 @@ function enviarDatosServo(x, y) {
     if (ahora - ultimoEnvio > 100 || (x === 0 && y === 0)) {
         ultimoEnvio = ahora;
 
-        // Convertimos el rango del joystick (-100 a 100) a los grados que espera tu ESP32
-        // Mapeamos de manera segura en el rango físico real del servo (15° a 165°)
-        // Centro (0) dará 90° exactos
-        const panGrados = Math.round(90 + (x * 0.75));   // Mapea -100 a 100 -> 15° a 165°
-        const tiltGrados = Math.round(90 - (y * 0.75));  // Mapea -100 a 100 -> 15° a 165° (Invertido en Y)
+        // Convertimos el rango de tu joystick (-100 a 100) a los grados que espera tu Arduino
+        // X mapea a Pan (30 a 150) | Y mapea invertido a Tilt (50 a 130)
+        const panGrados = Math.round(90 + (x * 0.6));  
+        const tiltGrados = Math.round(90 - (y * 0.4)); 
 
-        // IMPORTANTE: Cambiado de /servo a /control para coincidir con tu nuevo firmware de la ESP32
-        const url = `http://${ipEsp32}/control?pan=${panGrados}&tilt=${tiltGrados}`;
+        // Construimos la URL apuntando a la ruta /servo y los parámetros que tu placa lee
+        const url = `http://${ipEsp32}/servo?pan=${panGrados}&tilt=${tiltGrados}`;
 
         fetch(url, { mode: 'no-cors' }) 
             .then(() => {
@@ -177,7 +173,7 @@ function addAlert(message, time) {
 // Consultar alertas al servidor Flask cada 1 segundo
 async function chequearAlertasServidor() {
     try {
-        const respuesta = await fetch(`${SERVIDOR_PYTHON}/obtener_alertas`);
+        const respuesta = await fetch(`http://localhost:5000/obtener_alertas`);
         const alertas = await respuesta.json();
 
         // Si el servidor devolvió alertas, las procesamos una por una
