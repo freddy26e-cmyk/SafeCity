@@ -1,158 +1,432 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeCity | Panel de Control Local</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeCity | Panel de Control</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="bg-slate-950 text-slate-200 overflow-hidden">
 
-    <header class="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
-        <div>
-            <h1 class="text-blue-500 font-bold tracking-widest text-xl">SAFECITY</h1>
-            <p class="text-[10px] text-slate-500 uppercase font-semibold">Smart Security System v1.0 - Conexión Local</p>
+<header class="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
+  <div>
+    <h1 class="text-blue-500 font-bold tracking-widest text-xl">SAFECITY</h1>
+    <p class="text-[10px] text-slate-500 uppercase font-semibold">
+      Smart Security System v1.0
+    </p>
+  </div>
+
+  <div class="text-right">
+    <p id="current-time" class="text-sm font-mono">00:00:00</p>
+    <p class="text-[9px] text-green-500">SISTEMA OPERATIVO</p>
+  </div>
+</header>
+
+<div class="flex h-[calc(100vh-64px)]">
+
+  <aside class="w-72 border-r border-slate-800 bg-slate-900/50 p-4">
+    <h2 class="text-[10px] font-bold text-slate-500 mb-6 tracking-widest">
+      CONTROL DE CÁMARA
+    </h2>
+
+    <div class="flex flex-col items-center justify-center p-4 bg-slate-900 border border-slate-800 rounded-lg">
+      <p class="text-[10px] text-slate-500 mb-4 uppercase tracking-wider font-semibold">
+        Joystick Pan & Tilt
+      </p>
+
+      <div id="joystick-boundary"
+           class="w-36 h-36 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center relative"
+           style="touch-action:none; user-select:none;">
+        <div id="joystick-stick"
+             class="w-12 h-12 rounded-full bg-blue-600 shadow-[0_0_15px_#2563eb] absolute"
+             style="transform:translate(0px,0px);">
         </div>
-        <div class="flex items-center gap-4">
-            <div class="text-right">
-                <p id="current-time" class="text-sm font-mono">00:00:00</p>
-                <p class="text-[9px] text-green-500">SISTEMA OPERATIVO LAN</p>
-            </div>
-            <button class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-full transition-all animate-pulse">
-                PÁNICO
-            </button>
-        </div>
-    </header>
+      </div>
 
-    <div class="flex h-[calc(100vh-64px)]">
-        <aside class="w-72 border-r border-slate-800 bg-slate-900/50 p-4 flex flex-col justify-between">
-            <div>
-                <h2 class="text-[10px] font-bold text-slate-500 mb-6 tracking-widest">CONTROL DE CÁMARA (SERVOS)</h2>
+      <p class="text-xs text-blue-500 mt-4 font-mono font-bold">
+        X: <span id="val-x">0</span> |
+        Y: <span id="val-y">0</span>
+      </p>
 
-                <div class="flex flex-col items-center justify-center p-4 bg-slate-900 border border-slate-800 rounded-lg h-60 relative">
-                    <p class="text-[10px] text-slate-500 mb-4 uppercase tracking-wider font-semibold">Joystick Pan & Tilt</p>
+      <p class="text-xs text-slate-400 mt-2 font-mono">
+        PAN: <span id="pan-value">90</span>° |
+        TILT: <span id="tilt-value">90</span>°
+      </p>
 
-                    <div id="joystick-boundary" class="w-32 h-32 rounded-full bg-slate-950 border border-slate-750 flex items-center justify-center relative touch-none">
-                        <div id="joystick-stick" class="w-12 h-12 rounded-full bg-blue-600 shadow-[0_0_15px_#2563eb] cursor-pointer absolute"></div>
-                    </div>
+      <p id="servo-status" class="text-xs text-yellow-400 mt-3 font-mono">
+        SERVOS: ESPERANDO
+      </p>
 
-                    <p class="text-xs text-blue-500 mt-4 font-mono font-bold">X: <span id="val-x">0</span> | Y: <span id="val-y">0</span></p>
-                </div>
-            </div>
-
-            <div class="p-3 bg-slate-900 border border-slate-800 rounded-lg">
-                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Cámara Activa</p>
-                <p id="server-status" class="text-xs font-mono text-yellow-400">SERVIDOR: CONFIGURANDO</p>
-            </div>
-        </aside>
-
-        <main class="flex-1 p-6 flex items-center justify-center bg-black/20">
-            <div class="w-full max-w-4xl aspect-video border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden group">
-                <div class="absolute top-0 left-0 w-full p-3 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between items-center">
-                    <span class="text-[10px] font-bold bg-blue-600 px-2 py-0.5 rounded">CAM 01 - ENTRADA</span>
-                    <span id="python-status" class="text-[10px] text-yellow-400 font-mono tracking-wider">CONECTANDO CON PYTHON...</span>
-                </div>
-                <img id="video-stream" src="" class="w-full h-full object-cover" alt="Esperando transmisión de Python...">
-            </div>
-        </main>
-
-        <aside class="w-72 border-l border-slate-800 bg-slate-900/50 p-4 flex flex-col">
-            <h2 class="text-[10px] font-bold text-slate-500 mb-4 tracking-widest">REGISTRO DE EVENTOS</h2>
-            <div id="alerts-feed" class="flex-1 overflow-y-auto space-y-3 pr-2">
-            </div>
-        </aside>
+      <button id="center-button"
+              class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-xs font-bold">
+        CENTRAR
+      </button>
     </div>
 
-    <script src="script.js"></script>
+    <div class="mt-4 p-3 bg-slate-900 border border-slate-800 rounded-lg">
+      <p id="server-status" class="text-xs font-mono text-yellow-400">
+        SERVIDOR: CONECTANDO
+      </p>
+    </div>
+  </aside>
 
-    <script>
-        const SERVIDOR_SAFECITY =
-            "https://horizontal-pricing-flower-rapid.trycloudflare.com";
+  <main class="flex-1 p-6 flex items-center justify-center bg-black/20">
+    <div class="w-full max-w-4xl aspect-video border border-slate-800 bg-slate-900 rounded-lg relative overflow-hidden">
+      <div class="absolute top-0 left-0 w-full p-3 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between">
+        <span class="text-[10px] font-bold bg-blue-600 px-2 py-0.5 rounded">
+          CAM 01 - ENTRADA
+        </span>
 
-        const videoSafeCity = document.getElementById("video-stream");
-        const estadoServidor = document.getElementById("server-status");
-        const estadoPython = document.getElementById("python-status");
-        const registroEventos = document.getElementById("alerts-feed");
+        <span id="python-status"
+              class="text-[10px] text-yellow-400 font-mono">
+          CONECTANDO CON PYTHON...
+        </span>
+      </div>
 
-        let ultimoEventoMostrado = "";
+      <img id="video-stream"
+           src="https://horizontal-pricing-flower-rapid.trycloudflare.com/video_feed"
+           class="w-full h-full object-cover"
+           alt="Video SafeCity">
+    </div>
+  </main>
 
-        function agregarEvento(texto, tipo = "info") {
-            const elemento = document.createElement("div");
+  <aside class="w-72 border-l border-slate-800 bg-slate-900/50 p-4 flex flex-col">
+    <h2 class="text-[10px] font-bold text-slate-500 mb-4 tracking-widest">
+      REGISTRO DE EVENTOS
+    </h2>
 
-            const claseColor =
-                tipo === "reconocido"
-                    ? "border-green-700 text-green-300"
-                    : tipo === "desconocido"
-                    ? "border-red-700 text-red-300"
-                    : "border-slate-700 text-slate-300";
+    <div id="alerts-feed"
+         class="flex-1 overflow-y-auto space-y-3 pr-2">
+    </div>
+  </aside>
 
-            elemento.className =
-                "p-3 bg-slate-900 border rounded-lg text-xs " +
-                claseColor;
+</div>
 
-            elemento.textContent = texto;
-            registroEventos.prepend(elemento);
-        }
+<script>
+const SERVIDOR = "https://horizontal-pricing-flower-rapid.trycloudflare.com";
 
-        function conectarVideoSafeCity() {
-            videoSafeCity.src =
-                SERVIDOR_SAFECITY + "/video_feed?t=" + Date.now();
+// =====================================================
+// RELOJ
+// =====================================================
+function actualizarReloj() {
+  document.getElementById("current-time").textContent =
+    new Date().toLocaleTimeString("es-PE", { hour12: false });
+}
 
-            estadoServidor.textContent = "SERVIDOR HTTPS ACTIVO";
-            estadoServidor.className =
-                "text-xs font-mono text-green-400";
-        }
+actualizarReloj();
+setInterval(actualizarReloj, 1000);
 
-        async function consultarReconocimiento() {
-            try {
-                const respuesta = await fetch(
-                    SERVIDOR_SAFECITY + "/estado?t=" + Date.now(),
-                    { cache: "no-store" }
-                );
+// =====================================================
+// ESTADO PYTHON / RECONOCIMIENTO
+// =====================================================
+const pythonStatus = document.getElementById("python-status");
+const serverStatus = document.getElementById("server-status");
+const alertsFeed = document.getElementById("alerts-feed");
 
-                if (!respuesta.ok) {
-                    throw new Error("HTTP " + respuesta.status);
-                }
+let ultimoEvento = "";
 
-                const datos = await respuesta.json();
+async function consultarEstado() {
+  try {
+    const respuesta = await fetch(
+      SERVIDOR + "/estado?t=" + Date.now(),
+      { cache: "no-store" }
+    );
 
-                estadoPython.textContent = datos.mensaje || "PYTHON ACTIVO";
-                estadoPython.className =
-                    "text-[10px] text-green-400 font-mono tracking-wider";
+    if (!respuesta.ok) {
+      throw new Error("HTTP " + respuesta.status);
+    }
 
-                if (datos.detectado && datos.fecha) {
-                    const clave =
-                        datos.fecha + "|" + datos.nombre + "|" + datos.similitud;
+    const datos = await respuesta.json();
 
-                    if (clave !== ultimoEventoMostrado) {
-                        ultimoEventoMostrado = clave;
+    pythonStatus.textContent = datos.mensaje || "PYTHON ACTIVO";
+    pythonStatus.className =
+      "text-[10px] text-green-400 font-mono";
 
-                        const reconocido =
-                            datos.nombre &&
-                            datos.nombre.toUpperCase() !== "DESCONOCIDO";
+    serverStatus.textContent = "SERVIDOR HTTPS ACTIVO";
+    serverStatus.className =
+      "text-xs font-mono text-green-400";
 
-                        agregarEvento(
-                            datos.fecha +
-                            " - " +
-                            (datos.nombre || "DESCONOCIDO") +
-                            " - similitud " +
-                            Number(datos.similitud || 0).toFixed(3),
-                            reconocido ? "reconocido" : "desconocido"
-                        );
-                    }
-                }
-            } catch (error) {
-                estadoPython.textContent = "PYTHON DESCONECTADO";
-                estadoPython.className =
-                    "text-[10px] text-red-400 font-mono tracking-wider";
-            }
-        }
+    if (datos.detectado && datos.fecha) {
+      const clave =
+        datos.fecha + "|" + datos.nombre + "|" + datos.similitud;
 
-        conectarVideoSafeCity();
-        consultarReconocimiento();
-        setInterval(consultarReconocimiento, 1000);
-    </script>
+      if (clave !== ultimoEvento) {
+        ultimoEvento = clave;
+
+        const div = document.createElement("div");
+        div.className =
+          "p-3 bg-slate-900 border border-slate-700 rounded-lg text-xs";
+
+        div.textContent =
+          datos.fecha +
+          " - " +
+          (datos.nombre || "DESCONOCIDO") +
+          " - similitud " +
+          Number(datos.similitud || 0).toFixed(3);
+
+        alertsFeed.prepend(div);
+      }
+    }
+
+  } catch (error) {
+    pythonStatus.textContent = "PYTHON DESCONECTADO";
+    pythonStatus.className =
+      "text-[10px] text-red-400 font-mono";
+
+    serverStatus.textContent = "SERVIDOR SIN RESPUESTA";
+    serverStatus.className =
+      "text-xs font-mono text-red-400";
+  }
+}
+
+consultarEstado();
+setInterval(consultarEstado, 1000);
+
+// =====================================================
+// JOYSTICK
+// =====================================================
+const boundary = document.getElementById("joystick-boundary");
+const stick = document.getElementById("joystick-stick");
+
+const valX = document.getElementById("val-x");
+const valY = document.getElementById("val-y");
+
+const panValue = document.getElementById("pan-value");
+const tiltValue = document.getElementById("tilt-value");
+
+const servoStatus = document.getElementById("servo-status");
+const centerButton = document.getElementById("center-button");
+
+const PAN_MIN = 30;
+const PAN_MAX = 150;
+const TILT_MIN = 50;
+const TILT_MAX = 130;
+
+let arrastrando = false;
+let envioActivo = false;
+let ultimoPendiente = null;
+let ultimoEnvioMs = 0;
+
+function limitar(v, minimo, maximo) {
+  return Math.max(minimo, Math.min(maximo, v));
+}
+
+function mapear(v, inMin, inMax, outMin, outMax) {
+  return Math.round(
+    outMin +
+    ((v - inMin) * (outMax - outMin)) /
+    (inMax - inMin)
+  );
+}
+
+async function enviarServo(pan, tilt) {
+  // No acumulamos peticiones viejas.
+  if (envioActivo) {
+    ultimoPendiente = { pan, tilt };
+    return;
+  }
+
+  envioActivo = true;
+
+  panValue.textContent = pan;
+  tiltValue.textContent = tilt;
+
+  try {
+    const respuesta = await fetch(
+      SERVIDOR +
+      "/servo?pan=" +
+      encodeURIComponent(pan) +
+      "&tilt=" +
+      encodeURIComponent(tilt) +
+      "&t=" +
+      Date.now(),
+      {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store"
+      }
+    );
+
+    if (!respuesta.ok) {
+      throw new Error("HTTP " + respuesta.status);
+    }
+
+    const datos = await respuesta.json();
+
+    if (!datos.conectado) {
+      throw new Error(datos.mensaje || "ESP32 desconectado");
+    }
+
+    servoStatus.textContent =
+      "SERVOS: OK - PAN " +
+      datos.pan +
+      "° / TILT " +
+      datos.tilt +
+      "°";
+
+    servoStatus.className =
+      "text-xs text-green-400 mt-3 font-mono";
+
+  } catch (error) {
+    console.error("Error servo:", error);
+
+    servoStatus.textContent =
+      "SERVOS: ERROR";
+
+    servoStatus.className =
+      "text-xs text-red-400 mt-3 font-mono";
+  }
+
+  envioActivo = false;
+
+  if (ultimoPendiente) {
+    const siguiente = ultimoPendiente;
+    ultimoPendiente = null;
+
+    enviarServo(
+      siguiente.pan,
+      siguiente.tilt
+    );
+  }
+}
+
+function actualizarJoystick(evento, forzar = false) {
+  const rect = boundary.getBoundingClientRect();
+
+  const centroX = rect.left + rect.width / 2;
+  const centroY = rect.top + rect.height / 2;
+
+  const radio =
+    rect.width / 2 -
+    stick.offsetWidth / 2;
+
+  let dx = evento.clientX - centroX;
+  let dy = evento.clientY - centroY;
+
+  const distancia = Math.hypot(dx, dy);
+
+  if (distancia > radio) {
+    const escala = radio / distancia;
+    dx *= escala;
+    dy *= escala;
+  }
+
+  stick.style.transform =
+    `translate(${dx}px, ${dy}px)`;
+
+  const porcentajeX = limitar(
+    Math.round(dx / radio * 100),
+    -100,
+    100
+  );
+
+  const porcentajeY = limitar(
+    Math.round(dy / radio * 100),
+    -100,
+    100
+  );
+
+  valX.textContent = porcentajeX;
+  valY.textContent = porcentajeY;
+
+  const pan = mapear(
+    porcentajeX,
+    -100,
+    100,
+    PAN_MIN,
+    PAN_MAX
+  );
+
+  const tilt = mapear(
+    -porcentajeY,
+    -100,
+    100,
+    TILT_MIN,
+    TILT_MAX
+  );
+
+  const ahora = performance.now();
+
+  // Aproximadamente 20 comandos/s como máximo.
+  if (forzar || ahora - ultimoEnvioMs >= 50) {
+    ultimoEnvioMs = ahora;
+    enviarServo(pan, tilt);
+  } else {
+    ultimoPendiente = { pan, tilt };
+  }
+}
+
+boundary.addEventListener("pointerdown", (evento) => {
+  evento.preventDefault();
+
+  arrastrando = true;
+
+  try {
+    boundary.setPointerCapture(evento.pointerId);
+  } catch (e) {}
+
+  actualizarJoystick(evento, true);
+});
+
+boundary.addEventListener("pointermove", (evento) => {
+  if (!arrastrando) return;
+
+  evento.preventDefault();
+  actualizarJoystick(evento, false);
+});
+
+function terminarJoystick(evento) {
+  if (!arrastrando) return;
+
+  arrastrando = false;
+
+  if (evento) {
+    actualizarJoystick(evento, true);
+  }
+}
+
+boundary.addEventListener("pointerup", terminarJoystick);
+boundary.addEventListener("pointercancel", terminarJoystick);
+boundary.addEventListener("lostpointercapture", () => {
+  arrastrando = false;
+});
+
+centerButton.addEventListener("click", () => {
+  stick.style.transform = "translate(0px,0px)";
+
+  valX.textContent = "0";
+  valY.textContent = "0";
+
+  enviarServo(90, 90);
+});
+
+// Verificación inicial del enlace a los servos.
+fetch(
+  SERVIDOR + "/estado_servos?t=" + Date.now(),
+  {
+    mode: "cors",
+    cache: "no-store"
+  }
+)
+.then(r => r.json())
+.then(datos => {
+  if (datos.conectado) {
+    servoStatus.textContent = "SERVOS: CONECTADOS";
+    servoStatus.className =
+      "text-xs text-green-400 mt-3 font-mono";
+  } else {
+    throw new Error(datos.mensaje || "Sin ESP32");
+  }
+})
+.catch(error => {
+  console.error(error);
+  servoStatus.textContent = "SERVOS: ERROR";
+  servoStatus.className =
+    "text-xs text-red-400 mt-3 font-mono";
+});
+</script>
 
 </body>
 </html>
