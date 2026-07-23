@@ -1,189 +1,262 @@
-// ==========================================
-// 1. RELOJ EN TIEMPO REAL
-// ==========================================
-function updateTime() {
-    const timeDisplay = document.getElementById('current-time');
-    const now = new Date();
-    timeDisplay.textContent = now.toLocaleTimeString();
-}
-setInterval(updateTime, 1000);
+/*
+  SafeCity - joystick para controlar dos servos.
 
-// IP de la ESP32-CAM para control directo de los motores (Servidor principal Puerto 80)
-const ipEsp32 = "192.168.15.153";
+  Este archivo aprovecha la dirección HTTPS que ya usa el elemento:
+      <img id="video-stream">
 
-// ==========================================
-// 2. CONTROL DEL JOYSTICK (PAN & TILT)
-// ==========================================
-const stick = document.getElementById('joystick-stick');
-const boundary = document.getElementById('joystick-boundary');
-const valX = document.getElementById('val-x');
-const valY = document.getElementById('val-y');
+  El comando viaja así:
+      GitHub Pages
+          -> Cloudflare Tunnel
+          -> servidor_safecity.py
+          -> ESP32
+          -> servos
+*/
 
-let isDragging = false;
-let boundaryRadius = boundary.offsetWidth / 2;
-let stickRadius = stick.offsetWidth / 2;
-let maxDistance = boundaryRadius - stickRadius; // Límite de movimiento físico
+document.addEventListener("DOMContentLoaded", () => {
+    const reloj = document.getElementById("current-time");
 
-// Posición inicial del stick en el centro exacto
-let centerX = boundaryRadius - stickRadius;
-let centerY = boundaryRadius - stickRadius;
+    function actualizarReloj() {
+        if (!reloj) {
+            return;
+        }
 
-// Colocar el joystick en el centro al cargar la página
-stick.style.left = `${centerX}px`;
-stick.style.top = `${centerY}px`;
-
-// Función para mover el joystick y calcular porcentajes
-function moveJoystick(clientX, clientY) {
-    const rect = boundary.getBoundingClientRect();
-    
-    // Coordenadas del toque/click relativas al centro del contenedor
-    const touchX = clientX - rect.left - boundaryRadius;
-    const touchY = clientY - rect.top - boundaryRadius;
-    
-    // Distancia desde el centro usando Pitágoras: d = sqrt(x² + y²)
-    const distance = Math.sqrt(touchX * touchX + touchY * touchY);
-    
-    let finalX = touchX;
-    let finalY = touchY;
-    
-    // Si se sale del límite circular, restringir el movimiento al borde
-    if (distance > maxDistance) {
-        const angle = Math.atan2(touchY, touchX);
-        finalX = Math.cos(angle) * maxDistance;
-        finalY = Math.sin(angle) * maxDistance;
+        reloj.textContent = new Date().toLocaleTimeString(
+            "es-PE",
+            {
+                hour12: false,
+            }
+        );
     }
-    
-    // Mover visualmente el stick
-    stick.style.left = `${centerX + finalX}px`;
-    stick.style.top = `${centerY + finalY}px`;
-    
-    // Convertir la posición a un rango de -100 a 100
-    // Invertimos la "Y" para que "Arriba" sea positivo y "Abajo" sea negativo
-    const percentX = Math.round((finalX / maxDistance) * 100);
-    const percentY = Math.round(-(finalY / maxDistance) * 100);
-    
-    // Mostrar valores en la interfaz HTML
-    valX.textContent = percentX;
-    valY.textContent = percentY;
 
-    // Enviar coordenadas mapeadas al ESP32-CAM
-    enviarDatosServo(percentX, percentY);
-}
+    actualizarReloj();
+    setInterval(actualizarReloj, 1000);
 
-// Retornar el joystick al centro al soltarlo
-function resetJoystick() {
-    isDragging = false;
-    stick.style.transition = "all 0.2s ease-out"; // Animación fluida de retorno
-    stick.style.left = `${centerX}px`;
-    stick.style.top = `${centerY}px`;
-    
-    valX.textContent = 0;
-    valY.textContent = 0;
+    const boundary = document.getElementById("joystick-boundary");
+    const stick = document.getElementById("joystick-stick");
+    const valorX = document.getElementById("val-x");
+    const valorY = document.getElementById("val-y");
+    const video = document.getElementById("video-stream");
 
-    // Retornar servos a su centro (90°, 90°) al soltar el joystick
-    enviarDatosServo(0, 0);
-}
+    if (!boundary || !stick || !valorX || !valorY || !video) {
+        console.error("No se encontraron los elementos del joystick.");
+        return;
+    }
 
-// Quitar la transición para que no tenga lag al arrastrar
-function startDrag() {
-    isDragging = true;
-    stick.style.transition = "none";
-}
+    const PAN_MIN = 30;
+    const PAN_MAX = 150;
+    const TILT_MIN = 50;
+    const TILT_MAX = 130;
 
-// --- EVENTOS DE MOUSE (PC) ---
-stick.addEventListener('mousedown', (e) => {
-    startDrag();
-    e.preventDefault();
-});
+    let arrastrando = false;
+    let ultimoEnvio = 0;
+    let temporizadorPendiente = null;
+    let envioEnCurso = false;
+    let ultimoObjetivoPendiente = null;
 
-document.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    moveJoystick(e.clientX, e.clientY);
-});
+    let panActual = 90;
+    let tiltActual = 90;
 
-document.addEventListener('mouseup', () => {
-    if (isDragging) resetJoystick();
-});
+    function limitar(valor, minimo, maximo) {
+        return Math.max(minimo, Math.min(maximo, valor));
+    }
 
-// --- EVENTOS TÁCTILES (Móvil) ---
-stick.addEventListener('touchstart', (e) => {
-    startDrag();
-    e.preventDefault();
-});
+    function mapear(valor, minEntrada, maxEntrada, minSalida, maxSalida) {
+        return Math.round(
+            minSalida +
+            ((valor - minEntrada) * (maxSalida - minSalida)) /
+            (maxEntrada - minEntrada)
+        );
+    }
 
-document.addEventListener('touchmove', (e) => {
-    if (!isDragging) return;
-    const touch = e.touches[0];
-    moveJoystick(touch.clientX, touch.clientY);
-});
+    function obtenerServidorSafeCity() {
+        const src = video.src;
 
-document.addEventListener('touchend', () => {
-    if (isDragging) resetJoystick();
-});
+        if (!src || !src.includes("/video_feed")) {
+            throw new Error(
+                "El video todavía no tiene una dirección pública."
+            );
+        }
 
-// ==========================================
-// 3. ENVÍO DE DATOS AL ESP32-CAM (PAN & TILT)
-// ==========================================
-let ultimoEnvio = 0;
+        return new URL(src).origin;
+    }
 
-function enviarDatosServo(x, y) {
-    const ahora = Date.now();
-    // Limitar los envíos a máximo uno cada 100ms para no congelar el chip
-    if (ahora - ultimoEnvio > 100 || (x === 0 && y === 0)) {
-        ultimoEnvio = ahora;
+    async function enviarServos(pan, tilt) {
+        if (envioEnCurso) {
+            ultimoObjetivoPendiente = { pan, tilt };
+            return;
+        }
 
-        // Convertimos el rango de tu joystick (-100 a 100) a los grados que espera tu Arduino
-        // X mapea a Pan (30 a 150) | Y mapea invertido a Tilt (50 a 130)
-        const panGrados = Math.round(90 + (x * 0.6));  
-        const tiltGrados = Math.round(90 - (y * 0.4)); 
+        envioEnCurso = true;
 
-        // Construimos la URL apuntando a la ruta /servo y los parámetros que tu placa lee
-        const url = `http://${ipEsp32}/servo?pan=${panGrados}&tilt=${tiltGrados}`;
+        try {
+            const servidor = obtenerServidorSafeCity();
 
-        fetch(url, { mode: 'no-cors' }) 
-            .then(() => {
-                console.log(`Comando Servo -> Pan: ${panGrados}° | Tilt: ${tiltGrados}°`);
-            })
-            .catch(err => {
-                console.log("ESP32 no responde a comandos de servo");
+            const url =
+                servidor +
+                "/servo?pan=" +
+                encodeURIComponent(pan) +
+                "&tilt=" +
+                encodeURIComponent(tilt) +
+                "&t=" +
+                Date.now();
+
+            const respuesta = await fetch(url, {
+                cache: "no-store",
             });
+
+            if (!respuesta.ok) {
+                throw new Error("HTTP " + respuesta.status);
+            }
+
+            const datos = await respuesta.json();
+
+            if (!datos.conectado) {
+                throw new Error(
+                    datos.mensaje || "ESP32 desconectado"
+                );
+            }
+        } catch (error) {
+            console.error("Error moviendo servos:", error);
+        } finally {
+            envioEnCurso = false;
+
+            if (ultimoObjetivoPendiente) {
+                const siguiente = ultimoObjetivoPendiente;
+                ultimoObjetivoPendiente = null;
+
+                enviarServos(
+                    siguiente.pan,
+                    siguiente.tilt
+                );
+            }
+        }
     }
-}
 
-// ==========================================
-// 4. CAPTURA DE ALERTAS DESDE EL SERVIDOR PYTHON
-// ==========================================
-function addAlert(message, time) {
-    const feed = document.getElementById('alerts-feed');
-    const alertTime = time || new Date().toLocaleTimeString();
-    
-    const alertHtml = `
-        <div class="alert-item p-3 bg-red-900/20 border-l-4 border-red-600 rounded animate-pulse">
-            <div class="flex justify-between items-start">
-                <span class="text-[10px] font-bold text-red-500 uppercase italic">Movimiento Detectado</span>
-                <span class="text-[10px] text-slate-500">${alertTime}</span>
-            </div>
-            <p class="text-xs mt-1 text-slate-300">${message}</p>
-        </div>
-    `;
-    
-    feed.insertAdjacentHTML('afterbegin', alertHtml);
-}
+    function programarEnvio(pan, tilt, forzar = false) {
+        const ahora = Date.now();
+        const espera = 40;
 
-// Consultar alertas al servidor Flask cada 1 segundo
-async function chequearAlertasServidor() {
-    try {
-        const respuesta = await fetch(`http://localhost:5000/obtener_alertas`);
-        const alertas = await respuesta.json();
+        if (forzar || ahora - ultimoEnvio >= espera) {
+            ultimoEnvio = ahora;
+            enviarServos(pan, tilt);
+            return;
+        }
 
-        // Si el servidor devolvió alertas, las procesamos una por una
-        alertas.forEach(alerta => {
-            addAlert(alerta.mensaje, alerta.tiempo);
-        });
-    } catch (error) {
-        // Silenciar errores de conexión cuando el script de Python esté apagado
+        clearTimeout(temporizadorPendiente);
+
+        temporizadorPendiente = setTimeout(() => {
+            ultimoEnvio = Date.now();
+            enviarServos(pan, tilt);
+        }, espera - (ahora - ultimoEnvio));
     }
-}
 
-// Iniciar monitoreo de alertas desde Python
-setInterval(chequearAlertasServidor, 1000);
+    function actualizarJoystick(evento, forzarEnvio = false) {
+        const rect = boundary.getBoundingClientRect();
+
+        const centroX = rect.left + rect.width / 2;
+        const centroY = rect.top + rect.height / 2;
+
+        const radioDisponible =
+            rect.width / 2 - stick.offsetWidth / 2;
+
+        let dx = evento.clientX - centroX;
+        let dy = evento.clientY - centroY;
+
+        const distancia = Math.hypot(dx, dy);
+
+        if (distancia > radioDisponible) {
+            const escala = radioDisponible / distancia;
+            dx *= escala;
+            dy *= escala;
+        }
+
+        stick.style.transform =
+            `translate(${dx}px, ${dy}px)`;
+
+        const xPorcentaje = limitar(
+            Math.round((dx / radioDisponible) * 100),
+            -100,
+            100
+        );
+
+        const yPorcentaje = limitar(
+            Math.round((dy / radioDisponible) * 100),
+            -100,
+            100
+        );
+
+        valorX.textContent = xPorcentaje;
+        valorY.textContent = yPorcentaje;
+
+        panActual = mapear(
+            xPorcentaje,
+            -100,
+            100,
+            PAN_MIN,
+            PAN_MAX
+        );
+
+        // Hacia arriba aumenta el ángulo vertical.
+        tiltActual = mapear(
+            -yPorcentaje,
+            -100,
+            100,
+            TILT_MIN,
+            TILT_MAX
+        );
+
+        programarEnvio(
+            panActual,
+            tiltActual,
+            forzarEnvio
+        );
+    }
+
+    boundary.addEventListener("pointerdown", (evento) => {
+        arrastrando = true;
+        boundary.setPointerCapture(evento.pointerId);
+        actualizarJoystick(evento, true);
+    });
+
+    boundary.addEventListener("pointermove", (evento) => {
+        if (!arrastrando) {
+            return;
+        }
+
+        actualizarJoystick(evento);
+    });
+
+    boundary.addEventListener("pointerup", (evento) => {
+        if (!arrastrando) {
+            return;
+        }
+
+        arrastrando = false;
+        actualizarJoystick(evento, true);
+    });
+
+    boundary.addEventListener("pointercancel", () => {
+        arrastrando = false;
+    });
+
+    // Doble clic o doble toque: centra ambos servos.
+    boundary.addEventListener("dblclick", () => {
+        panActual = 90;
+        tiltActual = 90;
+
+        stick.style.transform = "translate(0px, 0px)";
+        valorX.textContent = "0";
+        valorY.textContent = "0";
+
+        programarEnvio(
+            panActual,
+            tiltActual,
+            true
+        );
+    });
+
+    // Estado visual inicial.
+    stick.style.transform = "translate(0px, 0px)";
+    valorX.textContent = "0";
+    valorY.textContent = "0";
+});
